@@ -34,7 +34,12 @@ Projeto_AVD/
 │  ├─ parte_comum/                         # Scripts complementares da Parte Comum
 │  └─ parte_especifica/
 │     ├─ eda.ipynb                         # Análise exploratória e K-Means do dataset Pokémon
-│     └─ dashboard.py                      # Aplicação interativa em Streamlit
+│     ├─ dashboard.py                      # Aplicação interativa em Streamlit
+│     └─ frontend/                         # Front-end Web moderno com integração à PokéAPI
+│        ├─ index.html                     # Interface Web TCG com efeito Holo & Showdown
+│        ├─ style.css                      # Estilos personalizados e animações de cartas
+│        ├─ app.js                         # Lógica interativa, áudio cries e radar charts
+│        └─ pokemon_data.js                # Base dos 801 Pokémons com clusters K-Means
 └─ relatorio.pdf                           # Relatório técnico completo do projeto (em PDF)
 ```
 
@@ -103,7 +108,16 @@ O dashboard será aberto automaticamente no seu navegador padrão (em `http://lo
 - Explorar a Pokédex individual com sprites oficiais e comparar dois ou mais Pokémons lado a lado.
 - Exportar a base com os clusters atribuídos em CSV.
 
-### 2. Executar os Notebooks Jupyter
+### 2. Executar o Front-end Web Interativo (PokéAPI + Holo TCG)
+Para uma experiência visual rica com efeitos holográficos, sprites animados Showdown e sons reais (Cries) da PokéAPI:
+
+```bash
+# Executar a partir da raiz do repositório:
+python -m http.server 3000 --directory src/parte_especifica/frontend
+```
+Acesse no navegador: 👉 `http://localhost:3000`
+
+### 3. Executar os Notebooks Jupyter
 Para visualizar e reproduzir as análises exploratórias e experimentos de agrupamento:
 
 ```bash

@@ -1,0 +1,128 @@
+/* styles.css - Efeitos Visuais, Efeito Holo TCG e Pokéball Loader */
+
+/* Spinning Pokeball */
+.pokeball-spin {
+  width: 28px;
+  height: 28px;
+  background: linear-gradient(to bottom, #ef4444 50%, #f8fafc 50%);
+  border-radius: 50%;
+  border: 2px solid #0f172a;
+  position: relative;
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.4);
+  animation: spin 6s linear infinite;
+}
+.pokeball-spin::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: #0f172a;
+  transform: translateY(-50%);
+}
+.pokeball-spin::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 8px;
+  height: 8px;
+  background: #ffffff;
+  border: 2px solid #0f172a;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 4px rgba(255, 255, 255, 0.8);
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Nav Tabs */
+.nav-tab.active {
+  background: linear-gradient(135deg, #e11d48, #be123c);
+  color: #ffffff;
+  box-shadow: 0 4px 15px rgba(225, 29, 72, 0.35);
+}
+
+/* Card Pokémon TCG Style */
+.pokemon-card {
+  position: relative;
+  border-radius: 1.25rem;
+  background: rgba(15, 23, 42, 0.75);
+  border: 1px solid rgba(51, 65, 85, 0.6);
+  backdrop-filter: blur(12px);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+}
+
+.pokemon-card:hover {
+  transform: translateY(-5px);
+  border-color: rgba(244, 63, 94, 0.5);
+  box-shadow: 0 12px 28px -8px rgba(244, 63, 94, 0.25), 0 0 20px rgba(15, 23, 42, 0.8);
+}
+
+/* Efeito Holográfico / Foil para Lendários */
+.holo-card {
+  position: relative;
+  background: linear-gradient(135deg, rgba(30, 27, 75, 0.8), rgba(88, 28, 135, 0.6), rgba(15, 23, 42, 0.85));
+  border: 1px solid rgba(245, 158, 11, 0.5);
+}
+
+.holo-card::after {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(
+    60deg,
+    transparent 20%,
+    rgba(255, 255, 255, 0.15) 30%,
+    rgba(255, 215, 0, 0.25) 40%,
+    rgba(244, 63, 94, 0.2) 50%,
+    transparent 60%
+  );
+  transform: rotate(25deg);
+  pointer-events: none;
+  opacity: 0.6;
+  animation: holoSheen 4s ease-in-out infinite;
+}
+
+@keyframes holoSheen {
+  0% { transform: translateY(-30%) rotate(25deg); }
+  50% { transform: translateY(30%) rotate(25deg); }
+  100% { transform: translateY(-30%) rotate(25deg); }
+}
+
+/* Tipos Elementais Oficiais */
+.type-Normal { background-color: #9fa19f; color: #1e293b; }
+.type-Fire { background-color: #e62829; color: #ffffff; }
+.type-Water { background-color: #2980ef; color: #ffffff; }
+.type-Electric { background-color: #fac000; color: #1e293b; }
+.type-Grass { background-color: #3fa129; color: #ffffff; }
+.type-Ice { background-color: #3dcef3; color: #1e293b; }
+.type-Fighting { background-color: #ff8000; color: #ffffff; }
+.type-Poison { background-color: #9141cb; color: #ffffff; }
+.type-Ground { background-color: #915121; color: #ffffff; }
+.type-Flying { background-color: #81b9ef; color: #1e293b; }
+.type-Psychic { background-color: #ef4179; color: #ffffff; }
+.type-Bug { background-color: #91a119; color: #ffffff; }
+.type-Rock { background-color: #afa981; color: #1e293b; }
+.type-Ghost { background-color: #704170; color: #ffffff; }
+.type-Dragon { background-color: #5060e1; color: #ffffff; }
+.type-Steel { background-color: #60a1b8; color: #ffffff; }
+.type-Fairy { background-color: #ef70ef; color: #1e293b; }
+.type-Dark { background-color: #50413f; color: #ffffff; }
+
+/* Scale Up Modal Animation */
+@keyframes scaleUp {
+  from { opacity: 0; transform: scale(0.92); }
+  to { opacity: 1; transform: scale(1); }
+}
+.animate-scaleUp {
+  animation: scaleUp 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
