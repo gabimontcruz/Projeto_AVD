@@ -28,14 +28,12 @@ Projeto_AVD/
 │  └─ parte_especifica/                    # Saídas e figuras exportadas da parte específica
 ├─ notebooks/
 │  └─ parte_comum/
-│     ├─ eda.ipynb                         # Análise exploratória da Parte Comum
-│     └─ kmeans_metricas.ipynb             # K-Means e avaliação de métricas da Parte Comum
+│     └─ eda.ipynb                         # EDA, K-Means e métricas da Parte Comum
 ├─ src/
-│  ├─ parte_comum/                         # Scripts complementares da Parte Comum
 │  └─ parte_especifica/
 │     ├─ eda.ipynb                         # Análise exploratória e K-Means do dataset Pokémon
 │     ├─ dashboard.py                      # Aplicação interativa em Streamlit
-│     └─ frontend/                         # Front-end Web moderno com integração à PokéAPI
+│     └─ frontend/                         # EXTRA opcional (HTML/JS) — fora da avaliação
 │        ├─ index.html                     # Interface Web TCG com efeito Holo & Showdown
 │        ├─ style.css                      # Estilos personalizados e animações de cartas
 │        ├─ app.js                         # Lógica interativa, áudio cries e radar charts
@@ -58,6 +56,20 @@ Projeto_AVD/
   - Atributos base de combate: `hp`, `attack`, `defense`, `sp_attack`, `sp_defense`, `speed` e `base_total`.
   - Classificação, tipos primários e secundários (`type1`, `type2`), peso, altura e status lendário (`is_legendary`).
 - **Objetivo:** Descobrir arquétipos naturais de combate (Tanques, Sweepers/Atacantes Ágeis, Estágios Iniciais e Lendários/Titãs) através de K-Means, avaliando hiperparâmetros (Elbow, Silhueta, Davies-Bouldin) e disponibilizando uma interface interativa em Streamlit.
+- **Aprovação:** dataset aprovado pelo professor no checkpoint de **27/10/2026**.
+- **Pergunta de pesquisa:** *O aumento do poder de combate (`base_total`) ao longo das 7 gerações — o chamado power creep — atinge os Pokémon comuns ou é explicado pela maior presença de lendários nas gerações mais recentes?* (detalhes, público-alvo e storytelling na seção 1 do notebook `src/parte_especifica/eda.ipynb`).
+
+### Visualizações da Parte Específica (`out/parte_especifica/`)
+| Tipo | Arquivo | Conteúdo |
+| :--- | :--- | :--- |
+| Exploratória 1 | `1_distribuicao_stats.png` | Histogramas dos 6 atributos de combate |
+| Exploratória 2 | `2_frequencia_tipos.png` | Frequência por tipo primário |
+| Exploratória 3 | `3_matriz_correlacao.png` | Matriz de correlação de Pearson |
+| Exploratória 4 | `4_ataque_vs_defesa.png` | Ataque × Defesa com lendários em destaque |
+| Técnico (método) | `5_metricas_cotovelo_silhueta.png`, `6_clusters_pca.png` | Escolha/validação do k — **não** são explanatórios |
+| Apoio (outliers) | `7_boxplots_outliers.png` | Boxplots + regra IQR |
+| **Explanatória 1** | `8_explanatoria_power_creep.png` | Poder médio por geração (todos vs comuns) e % de lendários — responde à pergunta de pesquisa |
+| **Explanatória 2** | `9_explanatoria_titas_por_geracao.png` | Participação de cada geração no cluster de maior poder (lendários vs comuns) |
 
 ---
 
@@ -67,7 +79,7 @@ Recomenda-se a utilização do **Python 3.11** ou superior e a criação de um a
 
 ### 1. Clonar o repositório
 ```bash
-git clone https://github.com/SEU_USUARIO/Projeto_AVD.git
+git clone https://github.com/gabimontcruz/Projeto_AVD.git
 cd Projeto_AVD
 ```
 
@@ -103,12 +115,15 @@ O dashboard será aberto automaticamente no seu navegador padrão (em `http://lo
 - Filtrar Pokémons por Geração (1 a 7), Tipos e Status de Lendário.
 - Ajustar dinamicamente o número de clusters $k$ e escolher as variáveis de combate.
 - Visualizar em tempo real as métricas do modelo (Curva do Cotovelo, Silhouette Score e Davies-Bouldin).
-- Analisar a projeção 2D (PCA) e a distribuição 3D dos clusters.
-- Inspecionar o gráfico de radar (Spider Chart) com o perfil médio de cada arquétipo.
+- Analisar a projeção 2D (PCA) e a contagem de Pokémon por cluster (gráfico de barras).
+- Ver as 4 visualizações exploratórias e as 2 explanatórias que respondem à pergunta de pesquisa.
 - Explorar a Pokédex individual com sprites oficiais e comparar dois ou mais Pokémons lado a lado.
 - Exportar a base com os clusters atribuídos em CSV.
 
-### 2. Executar o Front-end Web Interativo (PokéAPI + Holo TCG)
+### 2. (Extra, fora da avaliação) Front-end Web Interativo (PokéAPI + Holo TCG)
+> [!NOTE]
+> A pasta `src/parte_especifica/frontend/` (HTML/CSS/JS) é um **extra opcional** feito pelo grupo e **não faz parte da entrega avaliada**, pois usa tecnologias fora das bibliotecas permitidas pela disciplina. Toda a análise e o dashboard oficial estão em Python (notebook + Streamlit).
+
 Para uma experiência visual rica com efeitos holográficos, sprites animados Showdown e sons reais (Cries) da PokéAPI:
 
 ```bash
@@ -129,7 +144,6 @@ jupyter notebook
 Abra os notebooks nas pastas correspondentes:
 - **Parte Comum:**
   - `notebooks/parte_comum/eda.ipynb`
-  - `notebooks/parte_comum/kmeans_metricas.ipynb`
 - **Parte Específica:**
   - `src/parte_especifica/eda.ipynb`
 
