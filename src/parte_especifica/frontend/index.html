@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PokéAnalytics Neo — Dashboard & Pokédex TCG</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Google Fonts: Orbitron & Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&family=Orbitron:wght@500;700;900&display=swap" rel="stylesheet">
+  <!-- Chart.js CDN para gráficos ultra-interativos -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans selection:bg-rose-500 selection:text-white">
+
+  <!-- Background Animated Gradients -->
+  <div class="fixed inset-0 overflow-hidden pointer-events-none z-0">
+    <div class="absolute -top-40 -left-40 w-96 h-96 bg-rose-600/15 rounded-full blur-3xl animate-pulse"></div>
+    <div class="absolute top-1/2 -right-40 w-96 h-96 bg-blue-600/15 rounded-full blur-3xl animate-pulse" style="animation-delay: 2s;"></div>
+    <div class="absolute -bottom-40 left-1/3 w-96 h-96 bg-emerald-600/15 rounded-full blur-3xl animate-pulse" style="animation-delay: 4s;"></div>
+  </div>
+
+  <!-- HEADER -->
+  <header class="sticky top-0 z-40 bg-slate-950/80 backdrop-blur-xl border-b border-slate-800/80 px-4 lg:px-8 py-3.5 shadow-xl">
+    <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <div class="relative w-10 h-10 flex items-center justify-center">
+          <div class="pokeball-spin"></div>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="text-xl font-black tracking-wider font-['Orbitron'] bg-gradient-to-r from-rose-500 via-amber-400 to-indigo-400 bg-clip-text text-transparent">
+              POKÉANALYTICS NEO
+            </h1>
+            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30">
+              AVD 2026.2
+            </span>
+          </div>
+          <p class="text-xs text-slate-400 font-medium">Clusterização K-Means + Visual Pokédex TCG & PokéAPI</p>
+        </div>
+      </div>
+
+      <!-- Quick Metrics Pills -->
+      <div class="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0 text-xs">
+        <div class="bg-slate-900/90 border border-slate-800 rounded-xl px-3 py-1.5 flex items-center gap-2 shadow-inner">
+          <i class="fa-solid fa-layer-group text-rose-400"></i>
+          <span class="text-slate-400">Total:</span>
+          <span class="font-bold font-mono text-white" id="stat-total-count">801</span>
+        </div>
+        <div class="bg-slate-900/90 border border-slate-800 rounded-xl px-3 py-1.5 flex items-center gap-2 shadow-inner">
+          <i class="fa-solid fa-chart-pie text-indigo-400"></i>
+          <span class="text-slate-400">Clusters:</span>
+          <span class="font-bold font-mono text-indigo-400">4 Grupos</span>
+        </div>
+        <div class="bg-slate-900/90 border border-slate-800 rounded-xl px-3 py-1.5 flex items-center gap-2 shadow-inner">
+          <i class="fa-solid fa-crown text-amber-400"></i>
+          <span class="text-slate-400">Lendários:</span>
+          <span class="font-bold font-mono text-amber-400">70</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- CONTROLS & NAV BAR -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-4 lg:p-8 space-y-6 z-10">
+    
+    <!-- Navigation Tabs -->
+    <div class="flex flex-wrap items-center justify-between gap-4 bg-slate-900/80 p-1.5 rounded-2xl border border-slate-800 backdrop-blur-md">
+      <div class="flex gap-1" id="nav-tabs">
+        <button onclick="switchView('gallery')" id="tab-gallery" class="nav-tab active flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all">
+          <i class="fa-solid fa-grip"></i> Pokédex TCG Holo
+        </button>
+        <button onclick="switchView('clusters')" id="tab-clusters" class="nav-tab flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white transition-all">
+          <i class="fa-solid fa-brain"></i> Laboratório K-Means
+        </button>
+        <button onclick="switchView('eda')" id="tab-eda" class="nav-tab flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white transition-all">
+          <i class="fa-solid fa-chart-line text-rose-400"></i> Gráficos do EDA (Notebook)
+        </button>
+        <button onclick="switchView('battle')" id="tab-battle" class="nav-tab flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white transition-all">
+          <i class="fa-solid fa-swords"></i> Comparador & Duelo
+        </button>
+      </div>
+
+      <!-- Quick Audio Toggle info -->
+      <div class="text-[11px] text-slate-400 flex items-center gap-2 px-3">
+        <i class="fa-solid fa-volume-high text-rose-400 animate-bounce"></i>
+        <span>Clique nos Pokémons para ouvir seus <strong>Cries</strong> reais da PokéAPI!</span>
+      </div>
+    </div>
+
+    <!-- VIEW 1: POKEDEX GALLERY -->
+    <div id="view-gallery" class="space-y-6">
+      
+      <!-- Filters Panel -->
+      <div class="bg-slate-900/60 backdrop-blur-xl border border-slate-800/90 rounded-2xl p-4 lg:p-5 shadow-xl space-y-4">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+          <!-- Search input -->
+          <div class="relative md:col-span-2">
+            <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 text-sm"></i>
+            <input type="text" id="search-input" placeholder="Buscar por Nome ou Nº Dex (ex: Gengar, 150)..."
+              class="w-full pl-10 pr-4 py-2.5 bg-slate-950/80 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-rose-500 transition-colors shadow-inner">
+          </div>
+
+          <!-- Cluster Filter -->
+          <div>
+            <select id="filter-cluster" class="w-full px-3 py-2.5 bg-slate-950/80 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-rose-500 transition-colors">
+              <option value="all">Todos os Clusters K-Means</option>
+              <option value="0">Cluster 0: Básico / Little Cup</option>
+              <option value="1">Cluster 1: Tanque / Muralha</option>
+              <option value="2">Cluster 2: Sweeper / Ágil</option>
+              <option value="3">Cluster 3: Titã / Lendário</option>
+            </select>
+          </div>
+
+          <!-- Generation Filter -->
+          <div>
+            <select id="filter-gen" class="w-full px-3 py-2.5 bg-slate-950/80 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-rose-500 transition-colors">
+              <option value="all">Todas as Gerações (1 a 7)</option>
+              <option value="1">Geração 1 (Kanto)</option>
+              <option value="2">Geração 2 (Johto)</option>
+              <option value="3">Geração 3 (Hoenn)</option>
+              <option value="4">Geração 4 (Sinnoh)</option>
+              <option value="5">Geração 5 (Unova)</option>
+              <option value="6">Geração 6 (Kalos)</option>
+              <option value="7">Geração 7 (Alola)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Type Badges Filter Pills -->
+        <div class="flex items-center gap-1.5 overflow-x-auto pb-1 text-[11px]" id="type-pills">
+          <button onclick="setTypeFilter('all')" class="type-pill active px-3 py-1 rounded-lg font-bold bg-slate-800 text-white border border-slate-700">Todos</button>
+          <!-- Gerados dinamicamente no JS -->
+        </div>
+      </div>
+
+      <!-- Result counter -->
+      <div class="flex items-center justify-between text-xs text-slate-400 px-1">
+        <span>Exibindo <strong id="visible-count" class="text-rose-400 font-mono">801</strong> Pokémons</span>
+        <span class="text-[11px] text-slate-500">Sprites e Áudios fornecidos pela PokéAPI oficial</span>
+      </div>
+
+      <!-- Pokemon Cards Grid -->
+      <div id="pokemon-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        <!-- Renderizado dinamicamente pelo JS -->
+      </div>
+    </div>
+
+    <!-- VIEW 2: K-MEANS LAB -->
+    <div id="view-clusters" class="space-y-6 hidden">
+      <div class="grid grid-cols-1 lg:grid-cols-4 gap-4">
+        <!-- Cluster Cards -->
+        <div class="lg:col-span-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          
+          <div onclick="filterByClusterLab(0)" class="cluster-card cursor-pointer bg-slate-900/80 border border-blue-500/30 hover:border-blue-500 rounded-2xl p-5 shadow-lg transition-all group">
+            <div class="flex items-center justify-between mb-2">
+              <span class="font-['Orbitron'] text-xs font-bold text-blue-400">CLUSTER 0</span>
+              <span class="px-2 py-0.5 rounded-full text-[10px] bg-blue-500/20 text-blue-300 font-bold font-mono">308 pkms</span>
+            </div>
+            <h3 class="font-bold text-base text-white group-hover:text-blue-300 transition-colors">Básico / Little Cup</h3>
+            <p class="text-xs text-slate-400 mt-1 leading-relaxed">Formas iniciais e não evoluídas. Stats modestos e balanceados em todas as frentes.</p>
+            <div class="mt-4 pt-3 border-t border-slate-800/80 flex justify-between text-xs font-mono">
+              <span class="text-slate-400">Base Média:</span>
+              <span class="font-bold text-blue-400">322.4</span>
+            </div>
+          </div>
+
+          <div onclick="filterByClusterLab(1)" class="cluster-card cursor-pointer bg-slate-900/80 border border-emerald-500/30 hover:border-emerald-500 rounded-2xl p-5 shadow-lg transition-all group">
+            <div class="flex items-center justify-between mb-2">
+              <span class="font-['Orbitron'] text-xs font-bold text-emerald-400">CLUSTER 1</span>
+              <span class="px-2 py-0.5 rounded-full text-[10px] bg-emerald-500/20 text-emerald-300 font-bold font-mono">142 pkms</span>
+            </div>
+            <h3 class="font-bold text-base text-white group-hover:text-emerald-300 transition-colors">Tanque / Muralha</h3>
+            <p class="text-xs text-slate-400 mt-1 leading-relaxed">Alta Defesa física ou Especial e HP considerável, compensados por menor velocidade.</p>
+            <div class="mt-4 pt-3 border-t border-slate-800/80 flex justify-between text-xs font-mono">
+              <span class="text-slate-400">Defesa Média:</span>
+              <span class="font-bold text-emerald-400">112.5</span>
+            </div>
+          </div>
+
+          <div onclick="filterByClusterLab(2)" class="cluster-card cursor-pointer bg-slate-900/80 border border-amber-500/30 hover:border-amber-500 rounded-2xl p-5 shadow-lg transition-all group">
+            <div class="flex items-center justify-between mb-2">
+              <span class="font-['Orbitron'] text-xs font-bold text-amber-400">CLUSTER 2</span>
+              <span class="px-2 py-0.5 rounded-full text-[10px] bg-amber-500/20 text-amber-300 font-bold font-mono">224 pkms</span>
+            </div>
+            <h3 class="font-bold text-base text-white group-hover:text-amber-300 transition-colors">Sweeper / Ágil</h3>
+            <p class="text-xs text-slate-400 mt-1 leading-relaxed">Atacantes velozes com alto dano de nocaute físico ou especial. Prioridade na velocidade.</p>
+            <div class="mt-4 pt-3 border-t border-slate-800/80 flex justify-between text-xs font-mono">
+              <span class="text-slate-400">Velocidade Média:</span>
+              <span class="font-bold text-amber-400">94.8</span>
+            </div>
+          </div>
+
+          <div onclick="filterByClusterLab(3)" class="cluster-card cursor-pointer bg-slate-900/80 border border-rose-500/30 hover:border-rose-500 rounded-2xl p-5 shadow-lg transition-all group">
+            <div class="flex items-center justify-between mb-2">
+              <span class="font-['Orbitron'] text-xs font-bold text-rose-400">CLUSTER 3</span>
+              <span class="px-2 py-0.5 rounded-full text-[10px] bg-rose-500/20 text-rose-300 font-bold font-mono">127 pkms</span>
+            </div>
+            <h3 class="font-bold text-base text-white group-hover:text-rose-300 transition-colors">Titã / Lendário</h3>
+            <p class="text-xs text-slate-400 mt-1 leading-relaxed">O ápice das estatísticas. Concentra Pokémons Lendários, Míticos e formas definitivas.</p>
+            <div class="mt-4 pt-3 border-t border-slate-800/80 flex justify-between text-xs font-mono">
+              <span class="text-slate-400">Base Média:</span>
+              <span class="font-bold text-rose-400">604.2</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Radar Chart & Comparison Lab -->
+        <div class="lg:col-span-2 bg-slate-900/80 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
+          <div class="flex items-center justify-between">
+            <h3 class="font-bold text-sm text-white flex items-center gap-2">
+              <i class="fa-solid fa-chart-radar text-rose-500"></i> Comparação Multidimensional dos Clusters
+            </h3>
+            <div class="flex gap-2">
+              <button onclick="toggleRadarCluster(0)" id="rad-btn-0" class="px-2 py-1 rounded text-[10px] font-bold bg-blue-500/20 text-blue-400 border border-blue-500/40">C0</button>
+              <button onclick="toggleRadarCluster(1)" id="rad-btn-1" class="px-2 py-1 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">C1</button>
+              <button onclick="toggleRadarCluster(2)" id="rad-btn-2" class="px-2 py-1 rounded text-[10px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/40">C2</button>
+              <button onclick="toggleRadarCluster(3)" id="rad-btn-3" class="px-2 py-1 rounded text-[10px] font-bold bg-rose-500/20 text-rose-400 border border-rose-500/40">C3</button>
+            </div>
+          </div>
+          <div class="flex justify-center items-center py-2">
+            <canvas id="labRadarCanvas" width="340" height="300"></canvas>
+          </div>
+        </div>
+
+        <!-- Analysis & Metrics Card -->
+        <div class="lg:col-span-2 bg-slate-900/80 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
+          <h3 class="font-bold text-sm text-white flex items-center gap-2">
+            <i class="fa-solid fa-square-poll-vertical text-indigo-400"></i> Métricas do Modelo K-Means
+          </h3>
+          <div class="grid grid-cols-2 gap-3 text-xs">
+            <div class="bg-slate-950 p-3.5 rounded-xl border border-slate-800 space-y-1">
+              <span class="text-slate-400 text-[11px]">Silhouette Score</span>
+              <div class="text-xl font-bold font-mono text-rose-400">0.3204</div>
+              <p class="text-[10px] text-slate-500">Pico de coesão intra-cluster e separação sem redundância.</p>
+            </div>
+            <div class="bg-slate-950 p-3.5 rounded-xl border border-slate-800 space-y-1">
+              <span class="text-slate-400 text-[11px]">Davies-Bouldin Index</span>
+              <div class="text-xl font-bold font-mono text-emerald-400">1.1482</div>
+              <p class="text-[10px] text-slate-500">Valores menores indicam agrupamentos mais compactos.</p>
+            </div>
+            <div class="bg-slate-950 p-3.5 rounded-xl border border-slate-800 space-y-1">
+              <span class="text-slate-400 text-[11px]">Método do Cotovelo</span>
+              <div class="text-xl font-bold font-mono text-amber-400">k = 4</div>
+              <p class="text-[10px] text-slate-500">Inflexão clara na taxa de decaimento do WCSS.</p>
+            </div>
+            <div class="bg-slate-950 p-3.5 rounded-xl border border-slate-800 space-y-1">
+              <span class="text-slate-400 text-[11px]">Variáveis Utilizadas</span>
+              <div class="text-sm font-bold font-mono text-indigo-400">6 Stats</div>
+              <p class="text-[10px] text-slate-500">HP, Attack, Defense, Sp. Atk, Sp. Def, Speed.</p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- VIEW 3: BATTLE COMPARATOR -->
+    <div id="view-battle" class="space-y-6 hidden">
+      <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6">
+        <h3 class="font-bold text-base text-white flex items-center gap-2">
+          <i class="fa-solid fa-swords text-rose-500"></i> Simulador & Comparador Lado a Lado
+        </h3>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+          <!-- Fighter 1 -->
+          <div class="bg-slate-950/80 border border-slate-800 rounded-2xl p-5 space-y-4 text-center">
+            <select id="battle-pkm-1" onchange="updateBattle()" class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-rose-500">
+              <!-- Preenchido via JS -->
+            </select>
+            <div class="flex flex-col items-center">
+              <img id="battle-img-1" src="" class="w-28 h-28 object-contain drop-shadow-xl" alt="Fighter 1">
+              <h4 id="battle-name-1" class="font-bold text-lg text-white mt-2">--</h4>
+              <div id="battle-cluster-1" class="text-xs font-mono font-bold mt-1">--</div>
+            </div>
+          </div>
+
+          <!-- Fighter 2 -->
+          <div class="bg-slate-950/80 border border-slate-800 rounded-2xl p-5 space-y-4 text-center">
+            <select id="battle-pkm-2" onchange="updateBattle()" class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-indigo-500">
+              <!-- Preenchido via JS -->
+            </select>
+            <div class="flex flex-col items-center">
+              <img id="battle-img-2" src="" class="w-28 h-28 object-contain drop-shadow-xl" alt="Fighter 2">
+              <h4 id="battle-name-2" class="font-bold text-lg text-white mt-2">--</h4>
+              <div id="battle-cluster-2" class="text-xs font-mono font-bold mt-1">--</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Radar Comparison of Battle -->
+        <div class="flex justify-center items-center pt-4 border-t border-slate-800">
+          <canvas id="battleRadarCanvas" width="360" height="300"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- VIEW 4: EDA NOTEBOOK VISUALIZATIONS -->
+    <div id="view-eda" class="space-y-6 hidden">
+      <!-- Header do EDA com Alternador de Modo -->
+      <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-slate-900/80 border border-slate-800 rounded-2xl p-4 lg:p-5 shadow-xl">
+        <div>
+          <h3 class="font-bold text-base text-white flex items-center gap-2">
+            <i class="fa-solid fa-chart-pie text-rose-500"></i> Laboratório Estatístico & Visualizações EDA
+          </h3>
+          <p class="text-xs text-slate-400 mt-0.5">Todas as análises do <code class="text-rose-400 font-mono">eda.ipynb</code> com interatividade total em tempo real (Chart.js + PokéAPI).</p>
+        </div>
+        
+        <!-- Toggle Modo Interativo vs Estático -->
+        <div class="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs">
+          <button onclick="setEdaMode('interactive')" id="eda-btn-interactive" class="px-3 py-1.5 rounded-lg font-bold bg-rose-500 text-white shadow-md transition-all flex items-center gap-1.5">
+            <i class="fa-solid fa-wand-magic-sparkles text-xs"></i> Interativo Dinâmico
+          </button>
+          <button onclick="setEdaMode('static')" id="eda-btn-static" class="px-3 py-1.5 rounded-lg font-bold text-slate-400 hover:text-white transition-all flex items-center gap-1.5">
+            <i class="fa-solid fa-image text-xs"></i> Figuras Originais
+          </button>
+        </div>
+      </div>
+
+      <!-- SEÇÃO 1: MODO INTERATIVO (CHART.JS + POKÉAPI) -->
+      <div id="eda-interactive-container" class="space-y-6">
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+          <!-- Gráfico Interativo 1: PCA 2D Clusters -->
+          <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-2.5">
+              <div>
+                <h4 class="font-bold text-sm text-white flex items-center gap-2">
+                  <i class="fa-solid fa-atom text-rose-400"></i> Espaço Latente PCA 2D (Interativo)
+                </h4>
+                <p class="text-[11px] text-slate-400 mt-0.5">801 Pokémons mapeados pelos 2 primeiros componentes principais.</p>
+              </div>
+              <span class="text-[10px] px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 font-mono font-bold">Clique no Ponto = Toca Cry</span>
+            </div>
+            <div class="relative h-80 w-full">
+              <canvas id="chart-pca-canvas"></canvas>
+            </div>
+            <div class="flex flex-wrap items-center justify-between text-[11px] text-slate-400 pt-1 border-t border-slate-800">
+              <span>PC1: Poder Geral & Stats (~48% Var.)</span>
+              <span>PC2: Polarização Ataque vs Defesa (~19% Var.)</span>
+            </div>
+          </div>
+
+          <!-- Gráfico Interativo 2: Dispersão Bivariada Customizável -->
+          <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
+            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-slate-800 pb-2.5">
+              <h4 class="font-bold text-sm text-white flex items-center gap-2">
+                <i class="fa-solid fa-compass text-amber-400"></i> Dispersão Customizada (Scatter Lab)
+              </h4>
+              <!-- Controles de Eixos -->
+              <div class="flex items-center gap-2 text-xs">
+                <select id="scatter-x" onchange="updateScatterChart()" class="bg-slate-950 border border-slate-800 rounded px-2 py-1 text-white font-mono text-[11px]">
+                  <option value="atk" selected>X: Ataque</option>
+                  <option value="def">X: Defesa</option>
+                  <option value="hp">X: HP</option>
+                  <option value="spa">X: Sp. Atk</option>
+                  <option value="spd">X: Sp. Def</option>
+                  <option value="spe">X: Velocidade</option>
+                  <option value="total">X: Base Total</option>
+                </select>
+                <select id="scatter-y" onchange="updateScatterChart()" class="bg-slate-950 border border-slate-800 rounded px-2 py-1 text-white font-mono text-[11px]">
+                  <option value="def" selected>Y: Defesa</option>
+                  <option value="atk">Y: Ataque</option>
+                  <option value="hp">Y: HP</option>
+                  <option value="spa">Y: Sp. Atk</option>
+                  <option value="spd">Y: Sp. Def</option>
+                  <option value="spe">Y: Velocidade</option>
+                  <option value="total">Y: Base Total</option>
+                </select>
+              </div>
+            </div>
+            <div class="relative h-80 w-full">
+              <canvas id="chart-scatter-canvas"></canvas>
+            </div>
+            <div class="flex items-center justify-between text-[11px] text-slate-400 pt-1 border-t border-slate-800">
+              <span>Pontos maiores representam Pokémons Lendários.</span>
+              <span class="text-amber-400 font-mono font-bold">Zoom e Hover ativos</span>
+            </div>
+          </div>
+
+          <!-- Gráfico Interativo 3: Histograma Interativo dos Stats -->
+          <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-2.5">
+              <h4 class="font-bold text-sm text-white flex items-center gap-2">
+                <i class="fa-solid fa-chart-column text-blue-400"></i> Distribuição de Frequência por Atributo
+              </h4>
+              <select id="hist-stat" onchange="updateHistChart()" class="bg-slate-950 border border-slate-800 rounded px-2 py-1 text-white font-mono text-[11px]">
+                <option value="hp">HP</option>
+                <option value="atk" selected>Ataque</option>
+                <option value="def">Defesa</option>
+                <option value="spa">Sp. Atk</option>
+                <option value="spd">Sp. Def</option>
+                <option value="spe">Velocidade</option>
+                <option value="total">Base Total</option>
+              </select>
+            </div>
+            <div class="relative h-72 w-full">
+              <canvas id="chart-hist-canvas"></canvas>
+            </div>
+            <p id="hist-desc" class="text-[11px] text-slate-400 pt-1 border-t border-slate-800">
+              Distribuição dos valores com curva normal estimada e contagem de Pokémons por faixa.
+            </p>
+          </div>
+
+          <!-- Gráfico Interativo 4: Frequência e Poder por Tipo Primário -->
+          <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-2.5">
+              <h4 class="font-bold text-sm text-white flex items-center gap-2">
+                <i class="fa-solid fa-fire text-emerald-400"></i> Frequência & Média por Tipo Primário
+              </h4>
+              <span class="text-[10px] text-slate-500 font-mono">18 Tipos Elementais</span>
+            </div>
+            <div class="relative h-72 w-full">
+              <canvas id="chart-types-canvas"></canvas>
+            </div>
+            <div class="flex items-center justify-between text-[11px] text-slate-400 pt-1 border-t border-slate-800">
+              <span>Barras ordenadas por número de espécies.</span>
+              <span class="text-emerald-400 font-bold font-mono">Passe o mouse para ver médias</span>
+            </div>
+          </div>
+
+          <!-- Gráfico Interativo 5: Cotovelo & Silhueta (2 Eixos) -->
+          <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-2.5">
+              <h4 class="font-bold text-sm text-white flex items-center gap-2">
+                <i class="fa-solid fa-code-compare text-indigo-400"></i> Curva do Cotovelo & Silhueta (k = 2 a 8)
+              </h4>
+              <span class="text-[10px] px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-mono font-bold">Ótimo k = 4</span>
+            </div>
+            <div class="relative h-72 w-full">
+              <canvas id="chart-elbow-canvas"></canvas>
+            </div>
+            <div class="flex items-center justify-between text-[11px] text-slate-400 pt-1 border-t border-slate-800">
+              <span class="text-rose-400 font-bold">● Inércia (Eixo Esquerdo)</span>
+              <span class="text-blue-400 font-bold">■ Coeficiente de Silhueta (Eixo Direito)</span>
+            </div>
+          </div>
+
+          <!-- Gráfico Interativo 6: Matriz de Correlação Heatmap Interativo -->
+          <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-2.5">
+              <h4 class="font-bold text-sm text-white flex items-center gap-2">
+                <i class="fa-solid fa-table-cells text-rose-400"></i> Matriz de Correlação Linear Interativa
+              </h4>
+              <span class="text-[10px] text-slate-500 font-mono">Correlação de Pearson</span>
+            </div>
+            <div class="overflow-x-auto">
+              <table id="corr-interactive-table" class="w-full text-center text-[11px] border-collapse">
+                <!-- Preenchido dinamicamente via JS com gradientes térmicos reais -->
+              </table>
+            </div>
+            <p id="corr-tooltip-text" class="text-[11px] text-slate-400 pt-1 border-t border-slate-800 font-mono">
+              Passe o mouse sobre as células para ver a interpretação estatística.
+            </p>
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- SEÇÃO 2: MODO ESTÁTICO (FIGURAS ORIGINAIS DO NOTEBOOK EM ALTA RESOLUÇÃO) -->
+      <div id="eda-static-container" class="space-y-6 hidden">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+          <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-3">
+            <h4 class="font-bold text-sm text-white">1. Distribuição dos Atributos de Combate</h4>
+            <div class="bg-slate-950 rounded-xl p-2 border border-slate-800 cursor-pointer" onclick="openImageModal('assets/1_distribuicao_stats.png', 'Distribuição dos Atributos')">
+              <img src="assets/1_distribuicao_stats.png" class="w-full h-auto rounded-lg object-contain hover:scale-102 transition-transform duration-300" alt="1">
+            </div>
+          </div>
+
+          <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-3">
+            <h4 class="font-bold text-sm text-white">2. Frequência por Tipo Primário (Type 1)</h4>
+            <div class="bg-slate-950 rounded-xl p-2 border border-slate-800 cursor-pointer" onclick="openImageModal('assets/2_frequencia_tipos.png', 'Frequência por Tipo')">
+              <img src="assets/2_frequencia_tipos.png" class="w-full h-auto rounded-lg object-contain hover:scale-102 transition-transform duration-300" alt="2">
+            </div>
+          </div>
+
+          <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-3">
+            <h4 class="font-bold text-sm text-white">3. Matriz de Correlação de Pearson</h4>
+            <div class="bg-slate-950 rounded-xl p-2 border border-slate-800 cursor-pointer" onclick="openImageModal('assets/3_matriz_correlacao.png', 'Matriz de Correlação')">
+              <img src="assets/3_matriz_correlacao.png" class="w-full h-auto rounded-lg object-contain hover:scale-102 transition-transform duration-300" alt="3">
+            </div>
+          </div>
+
+          <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-3">
+            <h4 class="font-bold text-sm text-white">4. Ataque vs. Defesa (Destaque Lendários)</h4>
+            <div class="bg-slate-950 rounded-xl p-2 border border-slate-800 cursor-pointer" onclick="openImageModal('assets/4_ataque_vs_defesa.png', 'Ataque vs Defesa')">
+              <img src="assets/4_ataque_vs_defesa.png" class="w-full h-auto rounded-lg object-contain hover:scale-102 transition-transform duration-300" alt="4">
+            </div>
+          </div>
+
+          <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-3">
+            <h4 class="font-bold text-sm text-white">5. Diagnóstico K-Means: Cotovelo & Silhueta</h4>
+            <div class="bg-slate-950 rounded-xl p-2 border border-slate-800 cursor-pointer" onclick="openImageModal('assets/5_metricas_cotovelo_silhueta.png', 'Cotovelo e Silhueta')">
+              <img src="assets/5_metricas_cotovelo_silhueta.png" class="w-full h-auto rounded-lg object-contain hover:scale-102 transition-transform duration-300" alt="5">
+            </div>
+          </div>
+
+          <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-3">
+            <h4 class="font-bold text-sm text-white">6. Clusters K-Means no PCA 2D</h4>
+            <div class="bg-slate-950 rounded-xl p-2 border border-slate-800 cursor-pointer" onclick="openImageModal('assets/6_clusters_pca.png', 'Clusters no PCA')">
+              <img src="assets/6_clusters_pca.png" class="w-full h-auto rounded-lg object-contain hover:scale-102 transition-transform duration-300" alt="6">
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- MODAL DE DETALHES DO POKÉMON COM ÁUDIO CRY -->
+  <div id="pokemon-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-slate-900 border border-slate-700/80 rounded-3xl max-w-lg w-full p-6 shadow-2xl relative overflow-hidden space-y-5 animate-scaleUp">
+      
+      <!-- Close button -->
+      <button onclick="closeModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white p-2 rounded-xl bg-slate-800/60 transition-colors">
+        <i class="fa-solid fa-xmark text-sm"></i>
+      </button>
+
+      <!-- Modal Header -->
+      <div class="flex items-center gap-4">
+        <div class="relative w-28 h-28 flex-shrink-0 flex items-center justify-center bg-slate-950 rounded-2xl border border-slate-800 p-2">
+          <img id="modal-img" src="" class="w-full h-full object-contain drop-shadow-2xl" alt="Pokemon">
+          <button onclick="playCurrentCry()" class="absolute -bottom-2 -right-2 bg-rose-500 hover:bg-rose-600 text-white w-8 h-8 rounded-full flex items-center justify-center shadow-lg transition-transform hover:scale-110 active:scale-95" title="Tocar Cry oficial da PokéAPI">
+            <i class="fa-solid fa-volume-high text-xs"></i>
+          </button>
+        </div>
+        <div class="space-y-1">
+          <span id="modal-dex" class="text-xs font-mono font-bold text-slate-400">#000</span>
+          <h3 id="modal-name" class="text-2xl font-black text-white">Pokémon</h3>
+          <div id="modal-types" class="flex gap-1.5 pt-1"></div>
+          <div id="modal-cluster" class="text-xs font-bold pt-1"></div>
+        </div>
+      </div>
+
+      <!-- Stats Progress Bars -->
+      <div class="space-y-2 pt-2 border-t border-slate-800">
+        <div class="flex justify-between text-xs font-bold">
+          <span class="text-slate-400">Atributos de Combate</span>
+          <span id="modal-total" class="font-mono text-rose-400">Total: 0</span>
+        </div>
+
+        <div class="space-y-1.5 font-mono text-[11px]">
+          <div>
+            <div class="flex justify-between mb-0.5"><span>HP</span><span id="m-hp">0</span></div>
+            <div class="w-full bg-slate-950 h-2 rounded-full overflow-hidden"><div id="mbar-hp" class="bg-rose-500 h-full rounded-full transition-all duration-700" style="width: 0%"></div></div>
+          </div>
+          <div>
+            <div class="flex justify-between mb-0.5"><span>Ataque</span><span id="m-atk">0</span></div>
+            <div class="w-full bg-slate-950 h-2 rounded-full overflow-hidden"><div id="mbar-atk" class="bg-orange-500 h-full rounded-full transition-all duration-700" style="width: 0%"></div></div>
+          </div>
+          <div>
+            <div class="flex justify-between mb-0.5"><span>Defesa</span><span id="m-def">0</span></div>
+            <div class="w-full bg-slate-950 h-2 rounded-full overflow-hidden"><div id="mbar-def" class="bg-amber-500 h-full rounded-full transition-all duration-700" style="width: 0%"></div></div>
+          </div>
+          <div>
+            <div class="flex justify-between mb-0.5"><span>Sp. Atk</span><span id="m-spa">0</span></div>
+            <div class="w-full bg-slate-950 h-2 rounded-full overflow-hidden"><div id="mbar-spa" class="bg-blue-500 h-full rounded-full transition-all duration-700" style="width: 0%"></div></div>
+          </div>
+          <div>
+            <div class="flex justify-between mb-0.5"><span>Sp. Def</span><span id="m-spd">0</span></div>
+            <div class="w-full bg-slate-950 h-2 rounded-full overflow-hidden"><div id="mbar-spd" class="bg-emerald-500 h-full rounded-full transition-all duration-700" style="width: 0%"></div></div>
+          </div>
+          <div>
+            <div class="flex justify-between mb-0.5"><span>Velocidade</span><span id="m-spe">0</span></div>
+            <div class="w-full bg-slate-950 h-2 rounded-full overflow-hidden"><div id="mbar-spe" class="bg-purple-500 h-full rounded-full transition-all duration-700" style="width: 0%"></div></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- MODAL DE ZOOM DE IMAGEM DO EDA -->
+  <div id="image-modal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden" onclick="closeImageModal()">
+    <div class="bg-slate-900 border border-slate-700 rounded-3xl max-w-4xl w-full p-6 shadow-2xl relative overflow-hidden space-y-4 animate-scaleUp" onclick="event.stopPropagation()">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <h3 id="image-modal-title" class="font-bold text-base text-white">Visualização Gráfica</h3>
+        <button onclick="closeImageModal()" class="text-slate-400 hover:text-white p-2 rounded-xl bg-slate-800/60 transition-colors">
+          <i class="fa-solid fa-xmark text-sm"></i>
+        </button>
+      </div>
+      <div class="flex justify-center items-center bg-slate-950 rounded-2xl p-2 border border-slate-800">
+        <img id="image-modal-src" src="" class="max-h-[75vh] w-auto object-contain rounded-xl" alt="Gráfico">
+      </div>
+    </div>
+  </div>
+
+  <!-- Audio Element for Cries -->
+  <audio id="cry-audio" preload="none"></audio>
+
+  <!-- DATA & SCRIPTS -->
+  <script src="pokemon_data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
