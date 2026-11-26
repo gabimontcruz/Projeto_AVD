@@ -771,8 +771,10 @@ def load_pokemon_data():
     df["is_legendary"] = df["is_legendary"].astype(int)
     df["generation"] = df["generation"].astype(int)
     df["status_lendario"] = df["is_legendary"].map({0: "Comum", 1: "Lendario"})
-    df["height_m"] = pd.to_numeric(df["height_m"], errors="coerce").fillna(df["height_m"].median())
-    df["weight_kg"] = pd.to_numeric(df["weight_kg"], errors="coerce").fillna(df["weight_kg"].median())
+    # [IA] Claude (Antigravity) – altura/peso NAO sao imputados (ausencia ligada a formas de Alola/alternativas,
+    # ver secao 3.1 do notebook). Ficam como NaN; a correlacao usa exclusao par a par e o K-Means nao usa essas colunas.
+    df["height_m"] = pd.to_numeric(df["height_m"], errors="coerce")
+    df["weight_kg"] = pd.to_numeric(df["weight_kg"], errors="coerce")
     return df
 
 
@@ -1045,7 +1047,7 @@ if pagina_ativa == "Parte Especifica — Pokemon":
                 f'<h2 style="margin:0 0 6px 0;color:#111827;font-size:1.55rem;">{pkm["name"]}</h2>'
                 f'<div>{badges}</div>'
                 f'<div style="margin-top:8px;font-family:\'JetBrains Mono\',monospace;font-size:0.8rem;color:#334155;">'
-                f'<b>BST:</b> {int(pkm["base_total"])} &nbsp;|&nbsp; <b>H:</b> {pkm["height_m"]:.1f}m &nbsp;|&nbsp; <b>W:</b> {pkm["weight_kg"]:.1f}kg</div>'
+                f'<b>BST:</b> {int(pkm["base_total"])} &nbsp;|&nbsp; <b>H:</b> {"n/d (forma alternativa)" if pd.isna(pkm["height_m"]) else f"{pkm['height_m']:.1f}m"} &nbsp;|&nbsp; <b>W:</b> {"n/d" if pd.isna(pkm["weight_kg"]) else f"{pkm['weight_kg']:.1f}kg"}</div>'
                 f'</div>'
                 f'{render_showdown_stats(pkm)}'
                 f'</div>',
@@ -1591,63 +1593,75 @@ if pagina_ativa == "Parte Especifica — Pokemon":
     # ABA 5: EXPLANATORIA & STORYTELLING
     # ---------------------------------------------------------
     with tab_story:
+        # [IA] Claude (Antigravity) – Pergunta de pesquisa, publico-alvo e explanatorias alinhadas ao notebook (secoes 1 e 7)
         st.markdown(
             '<div class="autoral-note">'
-            '<b>[ESPACO AUTORAL DO GRUPO]</b> — Preencham aqui a <b>Pergunta de Pesquisa</b>, o <b>Publico-Alvo</b> '
-            'e o resumo do raciocinio explanatorio construido pelo grupo.'
+            '<b>Pergunta de pesquisa:</b> o aumento do poder de combate (Base Total) ao longo das geracoes '
+            '(<i>power creep</i>) atinge os Pokemon comuns ou e explicado pela maior presenca de lendarios nas geracoes recentes?<br>'
+            '<b>Publico-alvo:</b> jogadores e entusiastas de Pokemon (publico nao tecnico).<br>'
+            '<b>Leitura:</b> vermelho = elemento da mensagem; cinza = contexto. Os graficos tecnicos (cotovelo, PCA) '
+            'ficam na aba <i>Clusters K-Means</i> e nao fazem parte da narrativa.'
             '</div>',
             unsafe_allow_html=True
         )
 
+        VERMELHO, CINZA, CINZA_CLARO = "#DC0A2D", "#8D99AE", "#D9DEE5"
         col_s1, col_s2 = st.columns(2)
         with col_s1:
-            gen_stats = df_clust.groupby(["generation", "status_lendario"])["base_total"].mean().reset_index()
-            gen_stats["rotulo"] = gen_stats["base_total"].round(0).astype(int).astype(str)
+            gen_todos = df_clust.groupby("generation")["base_total"].mean().rename("Todos os Pokemon")
+            gen_comuns = df_clust[df_clust["is_legendary"] == 0].groupby("generation")["base_total"].mean().rename("Somente comuns")
+            gen_stats = pd.concat([gen_todos, gen_comuns], axis=1).reset_index()
+            gen_long = gen_stats.melt(id_vars="generation", var_name="Grupo", value_name="base_total").dropna()
+            gen_long["rotulo"] = gen_long["base_total"].round(0).astype(int).astype(str)
             fig_exp1 = px.line(
-                gen_stats,
+                gen_long,
                 x="generation",
                 y="base_total",
-                color="status_lendario",
+                color="Grupo",
                 text="rotulo",
                 markers=True,
-                color_discrete_map={"Comum": "#64748B", "Lendario": "#DC0A2D"},
-                title="Explanatoria 1: Poder Medio por Geracao (Lendarios vs Comuns)",
-                labels={"generation": "Geracao (1 a 7)", "base_total": "Media de Base Total (BST)", "status_lendario": "Categoria"}
+                color_discrete_map={"Todos os Pokemon": VERMELHO, "Somente comuns": CINZA},
+                title="Explanatoria 1: o poder medio sobe nas geracoes novas, puxado pelos lendarios",
+                labels={"generation": "Geracao (1 a 7)", "base_total": "Media de Base Total (BST)", "Grupo": ""}
             )
-            fig_exp1.update_traces(line=dict(width=3.5), marker=dict(size=9), textposition="top center", textfont=dict(size=10.5))
+            fig_exp1.update_traces(line=dict(width=2.5), marker=dict(size=8), textposition="top center", textfont=dict(size=10.5))
+            fig_exp1.update_traces(selector=dict(name="Todos os Pokemon"), line=dict(width=4.5), marker=dict(size=11))
             fig_exp1 = style_plotly(fig_exp1, 430, y_zero=True)
             fig_exp1.update_xaxes(dtick=1)
-            fig_exp1.update_yaxes(range=[0, 740], dtick=100)
+            max_exp1 = max(500, float(gen_long["base_total"].max()) + 65)
+            fig_exp1.update_yaxes(range=[0, max_exp1], dtick=100)
+            pct_leg = df_clust.groupby("generation")["is_legendary"].mean() * 100
+            for g_val, p_val in pct_leg.items():
+                fig_exp1.add_annotation(
+                    x=g_val, y=0.04, yref="paper", text=f"{p_val:.0f}% lend.",
+                    showarrow=False, font=dict(size=10, color=VERMELHO if p_val == pct_leg.max() else "#64748B")
+                )
             st.plotly_chart(fig_exp1, use_container_width=True)
 
         with col_s2:
-            stats_base = ["hp", "attack", "defense", "sp_attack", "sp_defense", "speed"]
-            nomes_bonitos = {
-                "hp": "HP", "attack": "Ataque", "defense": "Defesa",
-                "sp_attack": "Sp. Atk", "sp_defense": "Sp. Def", "speed": "Velocidade"
-            }
-            cluster_melt = (
-                df_clust.groupby("Cluster")[stats_base]
-                .mean()
-                .reset_index()
-                .melt(id_vars="Cluster", var_name="Atributo", value_name="Media")
-            )
-            cluster_melt["Atributo"] = cluster_melt["Atributo"].map(nomes_bonitos)
+            cluster_titas = df_clust["Cluster_Num"].max()  # clusters ordenados por base_total: o ultimo e o de maior poder
+            df_t = df_clust.assign(titas=df_clust["Cluster_Num"] == cluster_titas)
+            comp = df_t.groupby("generation").apply(lambda g: pd.Series({
+                "Lendarios": (g["titas"] & (g["is_legendary"] == 1)).mean() * 100,
+                "Comuns": (g["titas"] & (g["is_legendary"] == 0)).mean() * 100,
+            }), include_groups=False).reset_index()
+            comp_long = comp.melt(id_vars="generation", var_name="Categoria", value_name="Pct")
             fig_exp2 = px.bar(
-                cluster_melt,
-                x="Atributo",
-                y="Media",
-                color="Cluster",
-                barmode="group",
-                text_auto=".0f",
-                color_discrete_sequence=CLUSTER_PALETTE,
-                title="Explanatoria 2: Assinatura Media de Combate por Cluster",
-                labels={"Atributo": "Atributo de Combate", "Media": "Pontuacao Media (0 a 150)", "Cluster": "Cluster"}
+                comp_long,
+                x="generation",
+                y="Pct",
+                color="Categoria",
+                text_auto=".1f",
+                category_orders={"Categoria": ["Comuns", "Lendarios"]},
+                color_discrete_map={"Comuns": CINZA_CLARO, "Lendarios": VERMELHO},
+                title=f"Explanatoria 2: % de cada geracao no grupo de maior poder (Cluster {cluster_titas})",
+                labels={"generation": "Geracao (1 a 7)", "Pct": "% da geracao no grupo de maior poder (0–100%)", "Categoria": ""}
             )
-            fig_exp2.update_traces(textposition="outside", textfont=dict(size=10, color="#0F172A"))
+            fig_exp2.update_layout(barmode="stack")
             fig_exp2 = style_plotly(fig_exp2, 430, y_zero=True)
-            max_m_exp2 = max(140, float(cluster_melt["Media"].max()) + 22)
-            fig_exp2.update_yaxes(range=[0, max_m_exp2], dtick=20)
+            fig_exp2.update_xaxes(dtick=1)
+            max_pct_exp2 = min(100, max(35, float(comp[["Lendarios", "Comuns"]].sum(axis=1).max()) + 8))
+            fig_exp2.update_yaxes(range=[0, max_pct_exp2], dtick=10, ticksuffix="%")
             st.plotly_chart(fig_exp2, use_container_width=True)
 
     # ---------------------------------------------------------
