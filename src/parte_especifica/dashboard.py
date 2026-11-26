@@ -662,17 +662,55 @@ def render_showdown_stats(pkm_row):
     return rows_html
 
 
-def style_plotly(fig, height=400):
+def style_plotly(fig, height=420, y_zero=False, show_zeroline=False):
     fig.update_layout(
         plot_bgcolor="#FFFFFF",
         paper_bgcolor="#FFFFFF",
-        font=dict(family="Chakra Petch, sans-serif", color="#1E293B", size=12),
-        title_font=dict(size=15, color="#1E293B"),
-        margin=dict(l=20, r=20, t=52, b=30),
-        height=height
+        font=dict(family="Chakra Petch, sans-serif", color="#0F172A", size=12),
+        title=dict(font=dict(size=15, color="#0F172A"), x=0.02, xanchor="left"),
+        margin=dict(l=68, r=28, t=58, b=52),
+        height=height,
+        hoverlabel=dict(bgcolor="#0F172A", font_color="#FFFFFF", font_size=12)
     )
-    fig.update_xaxes(showgrid=True, gridcolor="#F1F5F9", zeroline=False)
-    fig.update_yaxes(showgrid=True, gridcolor="#F1F5F9", zeroline=False)
+    fig.update_xaxes(
+        showgrid=True,
+        gridcolor="#E2E8F0",
+        gridwidth=1,
+        showline=True,
+        linecolor="#64748B",
+        linewidth=1.5,
+        ticks="outside",
+        ticklen=5,
+        tickcolor="#64748B",
+        tickfont=dict(size=11.5, color="#1E293B"),
+        title_font=dict(size=13, color="#0F172A"),
+        title_standoff=10,
+        automargin=True,
+        zeroline=show_zeroline,
+        zerolinecolor="#94A3B8",
+        zerolinewidth=1.2
+    )
+    y_kwargs = dict(
+        showgrid=True,
+        gridcolor="#E2E8F0",
+        gridwidth=1,
+        showline=True,
+        linecolor="#64748B",
+        linewidth=1.5,
+        ticks="outside",
+        ticklen=5,
+        tickcolor="#64748B",
+        tickfont=dict(size=11.5, color="#1E293B"),
+        title_font=dict(size=13, color="#0F172A"),
+        title_standoff=12,
+        automargin=True,
+        zeroline=show_zeroline,
+        zerolinecolor="#94A3B8",
+        zerolinewidth=1.2
+    )
+    if y_zero:
+        y_kwargs["rangemode"] = "tozero"
+    fig.update_yaxes(**y_kwargs)
     return fig
 
 
@@ -1055,9 +1093,13 @@ if pagina_ativa == "Parte Especifica — Pokemon":
                     text="Valor",
                     color_discrete_sequence=["#DC0A2D", "#2563EB", "#059669", "#D97706"],
                     title="Duelo de Atributos Base (Comparacao Direta)",
-                    labels={"Atributo": "Atributo", "Valor": "Pontuacao", "name": "Pokemon"}
+                    labels={"Atributo": "Atributo de Combate", "Valor": "Pontuacao Base (0–255)", "name": "Pokemon"}
                 )
-                st.plotly_chart(style_plotly(fig_comp_bar, 390), use_container_width=True)
+                fig_comp_bar.update_traces(textposition="outside", textfont=dict(size=11, color="#0F172A"))
+                max_v_comp = max(160, int(df_comp_melt["Valor"].max()) + 25)
+                fig_comp_bar = style_plotly(fig_comp_bar, 410, y_zero=True)
+                fig_comp_bar.update_yaxes(range=[0, max_v_comp], dtick=25)
+                st.plotly_chart(fig_comp_bar, use_container_width=True)
                 st.dataframe(
                     df_comp_p[["pokedex_number", "name", "type1", "type2", "base_total", "Cluster"] + stats_6],
                     use_container_width=True
@@ -1147,10 +1189,14 @@ if pagina_ativa == "Parte Especifica — Pokemon":
                     color="Cluster",
                     text="Quantidade",
                     color_discrete_sequence=CLUSTER_PALETTE,
-                    title="Distribuicao dos Clusters K-Means no Seu Time Capturado"
+                    title="Distribuicao dos Clusters K-Means no Seu Time Capturado",
+                    labels={"Cluster": "Cluster K-Means", "Quantidade": "Qtd. de Pokemons"}
                 )
+                fig_pc_bar.update_traces(textposition="outside")
                 fig_pc_bar.update_layout(showlegend=False)
-                st.plotly_chart(style_plotly(fig_pc_bar, 320), use_container_width=True)
+                fig_pc_bar = style_plotly(fig_pc_bar, 340, y_zero=True)
+                fig_pc_bar.update_yaxes(dtick=1, range=[0, int(pc_clust["Quantidade"].max()) + 1])
+                st.plotly_chart(fig_pc_bar, use_container_width=True)
             with col_pc_exp:
                 st.markdown("#### Exportar Seu Time")
                 st.dataframe(
@@ -1382,10 +1428,10 @@ if pagina_ativa == "Parte Especifica — Pokemon":
                 hover_name="name",
                 hover_data=["type1", "type2", "base_total", "status_lendario"] + features_sel,
                 title=f"Projecao 2D dos Clusters via PCA (PC1: {var_expl[0]:.1f}% | PC2: {var_expl[1]:.1f}%)",
-                labels={"PCA1": f"PC1 ({var_expl[0]:.1f}%)", "PCA2": f"PC2 ({var_expl[1]:.1f}%)"}
+                labels={"PCA1": f"PC1 — Variancia explicada: {var_expl[0]:.1f}%", "PCA2": f"PC2 — Variancia explicada: {var_expl[1]:.1f}%"}
             )
             fig_pca.update_traces(marker=dict(size=8, opacity=0.84, line=dict(width=0.6, color="#FFFFFF")))
-            st.plotly_chart(style_plotly(fig_pca, 420), use_container_width=True)
+            st.plotly_chart(style_plotly(fig_pca, 430, show_zeroline=True), use_container_width=True)
 
         with col_k2:
             dist_c = df_clust["Cluster"].value_counts().reset_index()
@@ -1400,10 +1446,14 @@ if pagina_ativa == "Parte Especifica — Pokemon":
                 color="Cluster",
                 color_discrete_sequence=CLUSTER_PALETTE,
                 text="Rotulo",
-                title="Contagem por Cluster"
+                title="Contagem por Cluster",
+                labels={"Contagem": "Qtd. de Pokemons", "Cluster": "Grupo (K-Means)"}
             )
+            fig_dist.update_traces(textposition="outside", textfont=dict(size=11, color="#0F172A"))
             fig_dist.update_layout(showlegend=False, yaxis={"categoryorder": "total ascending"})
-            st.plotly_chart(style_plotly(fig_dist, 420), use_container_width=True)
+            fig_dist = style_plotly(fig_dist, 430)
+            fig_dist.update_xaxes(range=[0, float(dist_c["Contagem"].max()) * 1.28], rangemode="tozero")
+            st.plotly_chart(fig_dist, use_container_width=True)
 
         with st.expander("Curva do Cotovelo e Coeficiente de Silhueta (k = 2 a 8)", expanded=False):
             k_range = list(range(2, 9))
@@ -1415,15 +1465,35 @@ if pagina_ativa == "Parte Especifica — Pokemon":
                 silhouettes.append(silhouette_score(X_scaled, lbl_t))
 
             fig_eval = go.Figure()
-            fig_eval.add_trace(go.Scatter(x=k_range, y=inertias, mode="lines+markers", name="Inercia (WCSS)", yaxis="y1", line=dict(color="#DC0A2D", width=3)))
-            fig_eval.add_trace(go.Scatter(x=k_range, y=silhouettes, mode="lines+markers", name="Silhouette Score", yaxis="y2", line=dict(color="#2563EB", width=3, dash="dot")))
+            fig_eval.add_trace(go.Scatter(x=k_range, y=inertias, mode="lines+markers", name="Inercia (WCSS)", yaxis="y1", line=dict(color="#DC0A2D", width=3), marker=dict(size=8)))
+            fig_eval.add_trace(go.Scatter(x=k_range, y=silhouettes, mode="lines+markers", name="Silhouette Score", yaxis="y2", line=dict(color="#2563EB", width=3, dash="dot"), marker=dict(size=8)))
+            fig_eval = style_plotly(fig_eval, 380)
             fig_eval.update_layout(
                 title="Avaliacao de Hiperparametro k (Cotovelo e Silhueta)",
-                xaxis=dict(title=dict(text="k"), tickmode="linear", dtick=1),
-                yaxis=dict(title=dict(text="Inercia (WCSS)", font=dict(color="#DC0A2D")), tickfont=dict(color="#DC0A2D")),
-                yaxis2=dict(title=dict(text="Silhouette Score", font=dict(color="#2563EB")), tickfont=dict(color="#2563EB"), overlaying="y", side="right")
+                margin=dict(l=72, r=72, t=60, b=52),
+                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+                xaxis=dict(title=dict(text="Numero de Clusters (k)"), tickmode="linear", dtick=1),
+                yaxis=dict(
+                    title=dict(text="Inercia (WCSS)", font=dict(color="#DC0A2D", size=13)),
+                    tickfont=dict(color="#DC0A2D", size=11.5),
+                    tickformat=",.0f",
+                    rangemode="tozero",
+                    showline=True,
+                    linecolor="#DC0A2D"
+                ),
+                yaxis2=dict(
+                    title=dict(text="Silhouette Score (0 a 1)", font=dict(color="#2563EB", size=13)),
+                    tickfont=dict(color="#2563EB", size=11.5),
+                    tickformat=".2f",
+                    range=[0, max(0.5, max(silhouettes) * 1.25)],
+                    overlaying="y",
+                    side="right",
+                    showgrid=False,
+                    showline=True,
+                    linecolor="#2563EB"
+                )
             )
-            st.plotly_chart(style_plotly(fig_eval, 350), use_container_width=True)
+            st.plotly_chart(fig_eval, use_container_width=True)
 
         resumo = df_clust.groupby("Cluster")[features_sel + ["base_total", "is_legendary"]].mean()
         resumo["Contagem"] = df_clust.groupby("Cluster").size()
@@ -1447,16 +1517,21 @@ if pagina_ativa == "Parte Especifica — Pokemon":
                 text="Quantidade",
                 color="Tipo Primario",
                 color_discrete_map=TYPE_COLORS,
-                title="Exploratoria 1: Quantidade de Pokemons por Tipo Primario"
+                title="Exploratoria 1: Quantidade de Pokemons por Tipo Primario",
+                labels={"Quantidade": "Qtd. de Especies", "Tipo Primario": "Tipo Primario"}
             )
+            fig_type.update_traces(textposition="outside", textfont=dict(size=11, color="#0F172A"))
             fig_type.update_layout(showlegend=False, yaxis={"categoryorder": "total ascending"})
-            st.plotly_chart(style_plotly(fig_type, 430), use_container_width=True)
+            fig_type = style_plotly(fig_type, 460)
+            fig_type.update_xaxes(range=[0, float(type_counts["Quantidade"].max()) * 1.18], dtick=20, rangemode="tozero")
+            st.plotly_chart(fig_type, use_container_width=True)
 
         with col_e2:
             stat_box = st.selectbox(
                 "Atributo para inspecao de distribuicao e outliers:",
                 ["base_total", "hp", "attack", "defense", "sp_attack", "sp_defense", "speed"]
             )
+            y_label_box = "Base Total (BST — 180 a 780)" if stat_box == "base_total" else f"Pontuacao Base de {stat_box.upper()} (0 a 255)"
             fig_box = px.box(
                 df_clust,
                 x="type1",
@@ -1465,11 +1540,13 @@ if pagina_ativa == "Parte Especifica — Pokemon":
                 color_discrete_map=TYPE_COLORS,
                 hover_name="name",
                 title=f"Exploratoria 2: Distribuicao e Outliers de {stat_box.upper()} por Tipo",
-                labels={"type1": "Tipo Primario", stat_box: stat_box.upper()},
+                labels={"type1": "Tipo Primario", stat_box: y_label_box},
                 points="outliers"
             )
             fig_box.update_layout(showlegend=False, xaxis_tickangle=-45)
-            st.plotly_chart(style_plotly(fig_box, 370), use_container_width=True)
+            fig_box = style_plotly(fig_box, 400, y_zero=True)
+            fig_box.update_yaxes(dtick=100 if stat_box == "base_total" else 25)
+            st.plotly_chart(fig_box, use_container_width=True)
 
         col_e3, col_e4 = st.columns(2)
         with col_e3:
@@ -1483,9 +1560,12 @@ if pagina_ativa == "Parte Especifica — Pokemon":
                 zmin=-1,
                 zmax=1,
                 title="Exploratoria 3: Matriz de Correlacao Linear (Pearson)",
-                labels=dict(color="r")
+                labels=dict(x="Variavel", y="Variavel", color="Correlacao (r)")
             )
-            st.plotly_chart(style_plotly(fig_corr, 420), use_container_width=True)
+            fig_corr = style_plotly(fig_corr, 440)
+            fig_corr.update_xaxes(tickangle=-35, showgrid=False)
+            fig_corr.update_yaxes(showgrid=False)
+            st.plotly_chart(fig_corr, use_container_width=True)
 
         with col_e4:
             sc1, sc2 = st.columns(2)
@@ -1501,9 +1581,11 @@ if pagina_ativa == "Parte Especifica — Pokemon":
                 hover_name="name",
                 hover_data=["pokedex_number", "type1", "type2", "Cluster"],
                 title=f"Exploratoria 4: {eixo_x.upper()} vs {eixo_y.upper()} (Lendarios em Destaque)",
-                labels={eixo_x: eixo_x.upper(), eixo_y: eixo_y.upper(), "status_lendario": "Categoria"}
+                labels={eixo_x: f"{eixo_x.upper()} (Eixo X)", eixo_y: f"{eixo_y.upper()} (Eixo Y)", "status_lendario": "Categoria"}
             )
-            st.plotly_chart(style_plotly(fig_sc, 360), use_container_width=True)
+            fig_sc = style_plotly(fig_sc, 385, y_zero=True)
+            fig_sc.update_xaxes(rangemode="tozero")
+            st.plotly_chart(fig_sc, use_container_width=True)
 
     # ---------------------------------------------------------
     # ABA 5: EXPLANATORIA & STORYTELLING
@@ -1520,39 +1602,53 @@ if pagina_ativa == "Parte Especifica — Pokemon":
         col_s1, col_s2 = st.columns(2)
         with col_s1:
             gen_stats = df_clust.groupby(["generation", "status_lendario"])["base_total"].mean().reset_index()
+            gen_stats["rotulo"] = gen_stats["base_total"].round(0).astype(int).astype(str)
             fig_exp1 = px.line(
                 gen_stats,
                 x="generation",
                 y="base_total",
                 color="status_lendario",
+                text="rotulo",
                 markers=True,
-                color_discrete_map={"Comum": "#94A3B8", "Lendario": "#DC0A2D"},
+                color_discrete_map={"Comum": "#64748B", "Lendario": "#DC0A2D"},
                 title="Explanatoria 1: Poder Medio por Geracao (Lendarios vs Comuns)",
-                labels={"generation": "Geracao", "base_total": "Base Total Medio", "status_lendario": "Categoria"}
+                labels={"generation": "Geracao (1 a 7)", "base_total": "Media de Base Total (BST)", "status_lendario": "Categoria"}
             )
-            fig_exp1.update_traces(line=dict(width=3.5), marker=dict(size=10))
+            fig_exp1.update_traces(line=dict(width=3.5), marker=dict(size=9), textposition="top center", textfont=dict(size=10.5))
+            fig_exp1 = style_plotly(fig_exp1, 430, y_zero=True)
             fig_exp1.update_xaxes(dtick=1)
-            st.plotly_chart(style_plotly(fig_exp1, 410), use_container_width=True)
+            fig_exp1.update_yaxes(range=[0, 740], dtick=100)
+            st.plotly_chart(fig_exp1, use_container_width=True)
 
         with col_s2:
             stats_base = ["hp", "attack", "defense", "sp_attack", "sp_defense", "speed"]
+            nomes_bonitos = {
+                "hp": "HP", "attack": "Ataque", "defense": "Defesa",
+                "sp_attack": "Sp. Atk", "sp_defense": "Sp. Def", "speed": "Velocidade"
+            }
             cluster_melt = (
                 df_clust.groupby("Cluster")[stats_base]
                 .mean()
                 .reset_index()
                 .melt(id_vars="Cluster", var_name="Atributo", value_name="Media")
             )
+            cluster_melt["Atributo"] = cluster_melt["Atributo"].map(nomes_bonitos)
             fig_exp2 = px.bar(
                 cluster_melt,
                 x="Atributo",
                 y="Media",
                 color="Cluster",
                 barmode="group",
+                text_auto=".0f",
                 color_discrete_sequence=CLUSTER_PALETTE,
                 title="Explanatoria 2: Assinatura Media de Combate por Cluster",
-                labels={"Atributo": "Atributo de Combate", "Media": "Valor Medio", "Cluster": "Cluster"}
+                labels={"Atributo": "Atributo de Combate", "Media": "Pontuacao Media (0 a 150)", "Cluster": "Cluster"}
             )
-            st.plotly_chart(style_plotly(fig_exp2, 410), use_container_width=True)
+            fig_exp2.update_traces(textposition="outside", textfont=dict(size=10, color="#0F172A"))
+            fig_exp2 = style_plotly(fig_exp2, 430, y_zero=True)
+            max_m_exp2 = max(140, float(cluster_melt["Media"].max()) + 22)
+            fig_exp2.update_yaxes(range=[0, max_m_exp2], dtick=20)
+            st.plotly_chart(fig_exp2, use_container_width=True)
 
     # ---------------------------------------------------------
     # ABA 6: DADOS & CSV
